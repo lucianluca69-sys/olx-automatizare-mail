@@ -1,0 +1,41 @@
+{
+  "name": "OLX Resell Finder",
+  "nodeCount": 16,
+  "n8nWorkflowId": "3ZeC8PNOykKzk1Am",
+  "n8nUrl": "https://lucax12.app.n8n.cloud/workflow/3ZeC8PNOykKzk1Am",
+  "nodes": [
+    {"id": "0907295e-97a8-4869-ac3a-9f4e881f22c2", "name": "Zilnic la 08:00", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.4, "position": [0, 0], "parameters": {"rule": {"interval": [{"field": "days", "daysInterval": 1, "triggerAtHour": 8, "triggerAtMinute": 0}]}}},
+    {"id": "21e0db2b-3ff2-4bf2-82a8-dfc1cbd57123", "name": "Setări", "type": "n8n-nodes-base.set", "typeVersion": 3.5, "position": [240, 0], "parameters": {"mode": "manual", "includeOtherFields": false, "assignments": {"assignments": [
+      {"id": "email-destinatar", "name": "email_destinatar", "value": "lucianluca69@gmail.com", "type": "string"},
+      {"id": "link-sheet", "name": "link_sheet", "value": "COMPLETEAZA_AICI_LINKUL_CATRE_GOOGLE_SHEET_DUPA_CONFIGURARE", "type": "string"},
+      {"id": "url-constanta", "name": "url_constanta", "value": "https://www.olx.ro/electronice-si-electrocasnice/constanta/?search%5Bfilter_float_price%3Ato%5D=1500&currency=RON", "type": "string"},
+      {"id": "url-national-standard", "name": "url_national_standard", "value": "https://www.olx.ro/electronice-si-electrocasnice/?search%5Bfilter_float_price%3Ato%5D=1500&currency=RON", "type": "string"},
+      {"id": "url-national-special", "name": "url_national_special", "value": "https://www.olx.ro/electronice-si-electrocasnice/?search%5Bfilter_float_price%3Afrom%5D=1501&search%5Bfilter_float_price%3Ato%5D=5000&currency=RON", "type": "string"},
+      {"id": "buget-standard", "name": "buget_standard", "value": 1500, "type": "number"},
+      {"id": "buget-special", "name": "buget_special", "value": 5000, "type": "number"}
+    ]}}},
+    {"id": "gen-1", "name": "Pregătește URL-urile", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [480, 0], "note": "1 item (Setări) -> 3 itemi, câte un {url} per căutare OLX"},
+    {"id": "gen-2", "name": "Extrage o pagină OLX", "type": "@mendable/n8n-nodes-firecrawl.firecrawl", "typeVersion": 1, "position": [720, 0], "note": "resource=Scraping, operation=scrape, format=markdown (acoperit de Gateway credits; Extract NU este acoperit)"},
+    {"id": "gen-3", "name": "Extrage structurat cu AI", "type": "@n8n/n8n-nodes-langchain.anthropic", "typeVersion": 1, "position": [840, 0], "note": "resource=text, operation=message, Claude Sonnet 5 (Gateway credits) — primește markdown-ul paginii și returnează JSON cu anunțuri"},
+    {"id": "gen-4", "name": "Extrage anunțuri din pagini", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [960, 0], "note": "combină rezultatele JSON din cele 3 pagini într-o listă unică de anunțuri"},
+    {"id": "6c128116-4000-4580-bfdb-368238a67cfc", "name": "Elimină anunțuri incomplete", "type": "n8n-nodes-base.filter", "typeVersion": 2.3, "position": [960, 0]},
+    {"id": "9a730622-fe32-4a34-b8c7-bed9bfc23e09", "name": "Elimină anunțuri deja trimise", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [1200, 0], "note": "resource=row, operation=rowNotExists pe tabelul olx_anunturi_trimise (coloana link_anunt)"},
+    {"id": "4ae0b1da-8ae7-4a00-96c4-e85d36cf3768", "name": "Estimează profit anunț", "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 3.1, "position": [1440, 0], "note": "AI Agent (Claude Sonnet 5 via Gateway credits) + tool Brave Search + output parser structurat"},
+    {"id": "76eeb87c-b535-4e54-8f1a-5df1d16332b0", "name": "Model Anthropic", "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic", "typeVersion": 1.6, "position": [1440, 200]},
+    {"id": "86d644ce-953a-4a62-b394-ac48e7e34fc4", "name": "Căutare prețuri (Brave Search)", "type": "@brave/n8n-nodes-brave-search.braveSearchTool", "typeVersion": 1.1, "position": [1600, 200]},
+    {"id": "561783c1-1a11-46d3-92e7-2aaefea46045", "name": "Format ieșire structurat", "type": "@n8n/n8n-nodes-langchain.outputParserStructured", "typeVersion": 1.3, "position": [1440, 350]},
+    {"id": "eb9e56f2-55da-4b97-99c9-ce6c8b2d41e5", "name": "Combină date anunț", "type": "n8n-nodes-base.set", "typeVersion": 3.5, "position": [1780, 0]},
+    {"id": "8aa2da61-aa70-4656-86aa-fd16da240f93", "name": "Selectează și ordonează oportunitățile", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [2020, 0], "note": "Cod JS: clasifică regiune (Constanța/Național), aplică ponderea ~65/35, cota maximă 20% produse defecte, selectează oportunitatea specială (1500-5000 lei) și sortează descrescător după profit %."},
+    {"id": "916a4a2c-dbee-477d-b511-476a22c2446d", "name": "Trimite raport email", "type": "n8n-nodes-base.gmail", "typeVersion": 2.2, "position": [2260, -150], "credentials": {"gmailOAuth2": {"id": "IdKjdQMb74PIU9kj", "name": "Gmail account"}}},
+    {"id": "32c85cfd-58c6-4440-87a3-7d55210641d7", "name": "Desparte rândurile pentru salvare", "type": "n8n-nodes-base.splitOut", "typeVersion": 1, "position": [2260, 150], "parameters": {"fieldToSplitOut": "rows", "include": "noOtherFields"}},
+    {"id": "dc0a5f71-a4ea-4663-9bdb-8c8b964632c9", "name": "Salvează în Google Sheet", "type": "n8n-nodes-base.googleSheets", "typeVersion": 4.7, "position": [2500, 150], "credentials": {"googleSheetsOAuth2Api": {"id": "evB3Pm3lXK8kk7X4", "name": "Google Sheets account"}}},
+    {"id": "85fb3abc-9a6a-4c83-b429-9def6464011f", "name": "Marchează anunțul ca trimis", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [2500, 350], "note": "resource=row, operation=insert în tabelul olx_anunturi_trimise"}
+  ],
+  "connections_summary": [
+    "Zilnic la 08:00 -> Setări -> Pregătește URL-urile -> Extrage o pagină OLX -> Extrage structurat cu AI -> Extrage anunțuri din pagini -> Elimină anunțuri incomplete -> Elimină anunțuri deja trimise -> Estimează profit anunț -> Combină date anunț -> Selectează și ordonează oportunitățile",
+    "Selectează și ordonează oportunitățile -> [Trimite raport email, Desparte rândurile pentru salvare]",
+    "Desparte rândurile pentru salvare -> [Salvează în Google Sheet, Marchează anunțul ca trimis]",
+    "Model Anthropic / Căutare prețuri (Brave Search) / Format ieșire structurat -> subnoduri ale Estimează profit anunț"
+  ],
+  "note": "Acesta este un instantaneu de referință al workflow-ului. Sursa vie și editabilă este în n8n, la n8nUrl de mai sus — modifică workflow-ul acolo, nu în acest fișier."
+}
